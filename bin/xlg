@@ -1,0 +1,78 @@
+#!/usr/bin/env ruby
+
+require 'excel_grep'
+require 'multi_file_searcher'
+
+def show_help
+  puts "使用方法:"
+  puts "  xlg KEYWORD FILE.xlsx                    # 単一ファイル"
+  puts "  xlg KEYWORD FILE1.xlsx FILE2.xlsx       # 複数ファイル"
+  puts "  xlg KEYWORD /path/to/directory/          # ディレクトリ内全検索"
+  puts ""
+  puts "Excel ファイル内の文字列を検索し、grep形式で出力します。"
+  puts ""
+  puts "引数:"
+  puts "  KEYWORD         検索するキーワード"
+  puts "  FILE.xlsx       検索対象のExcelファイル（複数指定可能）"
+  puts "  /path/to/dir/   検索対象のディレクトリ"
+  puts ""
+  puts "対応ファイル形式:"
+  puts "  .xlsx (Excel 2007以降)"
+  puts "  .xls  (Excel 97-2003)"
+  puts "  .xlsm (マクロ有効Excel)"
+  puts ""
+  puts "例:"
+  puts "  xlg 'test' sample.xlsx"
+  puts "  xlg 'データ' file1.xlsx file2.xlsx"
+  puts "  xlg 'キーワード' /home/user/documents/"
+  puts ""
+  puts "オプション:"
+  puts "  -h, --help  このヘルプを表示"
+end
+
+def main
+  if ARGV.include?('-h') || ARGV.include?('--help') || ARGV.length == 0
+    show_help
+    exit 0
+  end
+
+  if ARGV.length < 2
+    $stderr.puts "エラー: 引数の数が正しくありません"
+    $stderr.puts "使用方法: xlg KEYWORD FILE.xlsx [FILE2.xlsx ...]"
+    $stderr.puts "詳細は 'xlg --help' を参照してください"
+    exit 1
+  end
+
+  keyword = ARGV[0]
+  paths = ARGV[1..-1]
+
+  begin
+    if paths.length == 1
+      # 単一ファイル/ディレクトリの場合
+      path = paths[0]
+      if File.directory?(path)
+        # ディレクトリの場合はMultiFileSearcherを使用
+        searcher = MultiFileSearcher.new(keyword, [path])
+        success = searcher.search
+      else
+        # 単一ファイルの場合はExcelGrepを使用
+        grep = ExcelGrep.new(keyword, path)
+        success = grep.search
+      end
+    else
+      # 複数パスの場合はMultiFileSearcherを使用
+      searcher = MultiFileSearcher.new(keyword, paths)
+      success = searcher.search
+    end
+    
+    exit(success ? 0 : 1)
+  rescue ArgumentError => e
+    $stderr.puts "エラー: #{e.message}"
+    exit 1
+  rescue => e
+    $stderr.puts "予期しないエラーが発生しました: #{e.message}"
+    exit 1
+  end
+end
+
+main
