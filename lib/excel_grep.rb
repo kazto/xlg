@@ -3,15 +3,15 @@ require 'cell_matcher'
 require 'output_formatter'
 
 class ExcelGrep
-  attr_reader :keyword, :file_path
+  attr_reader :pattern, :file_path
 
-  def initialize(keyword, file_path)
-    raise ArgumentError, "キーワードが空です" if keyword.nil? || keyword.empty?
+  def initialize(pattern, file_path)
+    raise ArgumentError, "検索パターンが空です" if pattern.nil? || pattern.empty?
     raise ArgumentError, "ファイルパスが空です" if file_path.nil? || file_path.empty?
     
-    @keyword = keyword
+    @pattern = pattern
     @file_path = file_path
-    @matcher = CellMatcher.new
+    @matcher = CellMatcher.new(pattern)
     @formatter = OutputFormatter.new
   end
 
@@ -45,9 +45,10 @@ class ExcelGrep
             next if cell.nil? || cell.value.nil?
             
             cell_value = cell.value.to_s
-            if @matcher.match?(cell_value, @keyword)
+            if @matcher.match?(cell_value)
               cell_ref = RubyXL::Reference.ind2ref(row_index, col_index)
-              puts @formatter.format(file_name, sheet_name, cell_ref, cell_value)
+              match_text = @matcher.extract_match(cell_value) || cell_value
+              puts @formatter.format(file_name, sheet_name, cell_ref, match_text)
             end
           end
         end

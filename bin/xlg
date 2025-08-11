@@ -5,14 +5,15 @@ require 'multi_file_searcher'
 
 def show_help
   puts "使用方法:"
-  puts "  xlg KEYWORD FILE.xlsx                    # 単一ファイル"
-  puts "  xlg KEYWORD FILE1.xlsx FILE2.xlsx       # 複数ファイル"
-  puts "  xlg KEYWORD /path/to/directory/          # ディレクトリ内全検索"
+  puts "  xlg PATTERN FILE.xlsx                    # 単一ファイル"
+  puts "  xlg PATTERN FILE1.xlsx FILE2.xlsx       # 複数ファイル"
+  puts "  xlg PATTERN /path/to/directory/          # ディレクトリ内全検索"
   puts ""
   puts "Excel ファイル内の文字列を検索し、grep形式で出力します。"
+  puts "検索パターンには通常の文字列または正規表現を指定できます。"
   puts ""
   puts "引数:"
-  puts "  KEYWORD         検索するキーワード"
+  puts "  PATTERN         検索パターン（文字列または正規表現）"
   puts "  FILE.xlsx       検索対象のExcelファイル（複数指定可能）"
   puts "  /path/to/dir/   検索対象のディレクトリ"
   puts ""
@@ -22,9 +23,15 @@ def show_help
   puts "  .xlsm (マクロ有効Excel)"
   puts ""
   puts "例:"
-  puts "  xlg 'test' sample.xlsx"
-  puts "  xlg 'データ' file1.xlsx file2.xlsx"
-  puts "  xlg 'キーワード' /home/user/documents/"
+  puts "  xlg 'test' sample.xlsx                  # 通常の文字列検索"
+  puts "  xlg 'データ' file1.xlsx file2.xlsx      # 複数ファイル検索"
+  puts "  xlg 'キーワード' /home/user/documents/   # ディレクトリ検索"
+  puts ""
+  puts "正規表現の例:"
+  puts "  xlg '\\d{4}-\\d{2}-\\d{2}' data.xlsx      # 日付形式 (YYYY-MM-DD)"
+  puts "  xlg '^[A-Z].*' data.xlsx               # 大文字で始まる文字列"
+  puts "  xlg 'test|demo' data.xlsx              # testまたはdemoを含む"
+  puts "  xlg '/pattern/i' data.xlsx             # 大文字小文字を区別しない"
   puts ""
   puts "オプション:"
   puts "  -h, --help  このヘルプを表示"
@@ -38,12 +45,12 @@ def main
 
   if ARGV.length < 2
     $stderr.puts "エラー: 引数の数が正しくありません"
-    $stderr.puts "使用方法: xlg KEYWORD FILE.xlsx [FILE2.xlsx ...]"
+    $stderr.puts "使用方法: xlg PATTERN FILE.xlsx [FILE2.xlsx ...]"
     $stderr.puts "詳細は 'xlg --help' を参照してください"
     exit 1
   end
 
-  keyword = ARGV[0]
+  pattern = ARGV[0]
   paths = ARGV[1..-1]
 
   begin
@@ -52,22 +59,26 @@ def main
       path = paths[0]
       if File.directory?(path)
         # ディレクトリの場合はMultiFileSearcherを使用
-        searcher = MultiFileSearcher.new(keyword, [path])
+        searcher = MultiFileSearcher.new(pattern, [path])
         success = searcher.search
       else
         # 単一ファイルの場合はExcelGrepを使用
-        grep = ExcelGrep.new(keyword, path)
+        grep = ExcelGrep.new(pattern, path)
         success = grep.search
       end
     else
       # 複数パスの場合はMultiFileSearcherを使用
-      searcher = MultiFileSearcher.new(keyword, paths)
+      searcher = MultiFileSearcher.new(pattern, paths)
       success = searcher.search
     end
     
     exit(success ? 0 : 1)
   rescue ArgumentError => e
     $stderr.puts "エラー: #{e.message}"
+    exit 1
+  rescue RegexpError => e
+    $stderr.puts "正規表現エラー: 不正な正規表現パターンです - #{e.message}"
+    $stderr.puts "正規表現の構文については 'xlg --help' を参照してください"
     exit 1
   rescue => e
     $stderr.puts "予期しないエラーが発生しました: #{e.message}"

@@ -3,6 +3,7 @@
 ## 概要
 Excel ファイル内の文字列を検索し、grep のような出力形式で結果を表示するコマンドラインツール。
 単一ファイル、複数ファイル、ディレクトリ内の全Excelファイルの検索に対応。
+キーワードには通常の文字列または正規表現を指定可能。
 
 ## アーキテクチャ
 
@@ -11,6 +12,7 @@ Excel ファイル内の文字列を検索し、grep のような出力形式で
 xlg KEYWORD /path/to/file.xlsx                    # 単一ファイル
 xlg KEYWORD file1.xlsx file2.xlsx file3.xlsx     # 複数ファイル
 xlg KEYWORD /path/to/directory/                   # ディレクトリ内全検索
+xlg "REGEX" /path/to/file.xlsx                    # 正規表現検索
 ```
 
 ### 出力形式
@@ -28,14 +30,14 @@ file.xlsx:シート名:セル位置:マッチした内容
 #### ExcelGrep クラス
 - **責務**: メインの検索処理を担当
 - **メソッド**:
-  - `initialize(keyword, file_path)`: キーワードとファイルパスを初期化
+  - `initialize(pattern, file_path)`: 検索パターンとファイルパスを初期化
   - `search()`: 検索を実行し結果を出力
   - `validate_file(file_path)`: ファイルの存在確認
 
 #### MultiFileSearcher クラス（新規）
 - **責務**: 複数ファイル・ディレクトリ検索の制御
 - **メソッド**:
-  - `initialize(keyword, paths)`: キーワードと検索パス一覧を初期化
+  - `initialize(pattern, paths)`: 検索パターンと検索パス一覧を初期化
   - `search()`: 全パスに対して検索を実行
   - `expand_paths(paths)`: パス一覧を実際のファイル一覧に展開
   - `find_excel_files(directory)`: ディレクトリ内のExcelファイルを取得
@@ -43,8 +45,11 @@ file.xlsx:シート名:セル位置:マッチした内容
 #### CellMatcher クラス
 - **責務**: セル内容とキーワードのマッチング処理
 - **メソッド**:
-  - `match?(cell_value, keyword)`: セル値がキーワードにマッチするかチェック
-  - `extract_match(cell_value, keyword)`: マッチした部分を抽出
+  - `initialize(pattern)`: 検索パターンを初期化（文字列または正規表現）
+  - `match?(cell_value)`: セル値がパターンにマッチするかチェック
+  - `extract_match(cell_value)`: マッチした部分を抽出
+  - `is_regex?(pattern)`: パターンが正規表現かどうかを判定
+  - `compile_pattern(pattern)`: パターンを正規表現オブジェクトに変換
 
 #### OutputFormatter クラス
 - **責務**: 検索結果の出力フォーマット
@@ -55,10 +60,11 @@ file.xlsx:シート名:セル位置:マッチした内容
 
 ### 単一ファイル検索
 1. コマンドライン引数の解析
-2. Excel ファイルの読み込み (rubyXL)
-3. 各シートを順次処理
-4. 各セルの内容をキーワードで検索
-5. マッチした場合、指定形式で出力
+2. 検索パターンの処理（文字列または正規表現）
+3. Excel ファイルの読み込み (rubyXL)
+4. 各シートを順次処理
+5. 各セルの内容を検索パターンで検索
+6. マッチした場合、指定形式で出力
 
 ### 複数ファイル・ディレクトリ検索
 1. コマンドライン引数の解析
@@ -87,6 +93,9 @@ file.xlsx:シート名:セル位置:マッチした内容
 - 指定されたディレクトリが存在しない場合
 
 ### 検索関連エラー
+- 正規表現パターンが不正な場合
+  - パターン構文エラーの検出
+  - 適切なエラーメッセージの表示
 - 複数ファイル検索中の個別ファイルエラー
   - エラーファイルはスキップして続行
   - エラー内容は標準エラーに出力

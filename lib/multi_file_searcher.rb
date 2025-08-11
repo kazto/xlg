@@ -1,13 +1,13 @@
 require 'excel_grep'
 
 class MultiFileSearcher
-  attr_reader :keyword, :paths
+  attr_reader :pattern, :paths
 
-  def initialize(keyword, paths)
-    raise ArgumentError, "キーワードが空です" if keyword.nil? || keyword.empty?
+  def initialize(pattern, paths)
+    raise ArgumentError, "検索パターンが空です" if pattern.nil? || pattern.empty?
     raise ArgumentError, "パスが空です" if paths.nil? || paths.empty?
     
-    @keyword = keyword
+    @pattern = pattern
     @paths = paths
   end
 
@@ -17,7 +17,7 @@ class MultiFileSearcher
     
     expanded_files.each do |file_path|
       begin
-        grep = ExcelGrep.new(@keyword, file_path)
+        grep = ExcelGrep.new(@pattern, file_path)
         if grep.search
           success_count += 1
         end
