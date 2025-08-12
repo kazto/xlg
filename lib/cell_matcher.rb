@@ -1,5 +1,6 @@
 class CellMatcher
   def initialize(pattern)
+    raise ArgumentError, "パターンが空です" if pattern.nil? || pattern.empty?
     @pattern = pattern
     @compiled_pattern = compile_pattern(pattern)
   end
@@ -11,7 +12,12 @@ class CellMatcher
     return false if cell_str.empty?
     
     if is_regex?(@pattern)
-      !(@compiled_pattern =~ cell_str).nil?
+      if @compiled_pattern.is_a?(Regexp)
+        !(@compiled_pattern =~ cell_str).nil?
+      else
+        # Fallback to literal matching if regex compilation failed
+        cell_str.downcase.include?(@pattern.downcase)
+      end
     else
       cell_str.downcase.include?(@pattern.downcase)
     end
@@ -23,8 +29,17 @@ class CellMatcher
     cell_str = cell_value.to_s
     
     if is_regex?(@pattern)
-      match_result = @compiled_pattern.match(cell_str)
-      match_result ? match_result[0] : nil
+      if @compiled_pattern.is_a?(Regexp)
+        match_result = @compiled_pattern.match(cell_str)
+        match_result ? match_result[0] : nil
+      else
+        # Fallback to literal matching if regex compilation failed
+        pattern_lower = @pattern.downcase
+        start_index = cell_str.downcase.index(pattern_lower)
+        return nil if start_index.nil?
+        
+        cell_str[start_index, @pattern.length]
+      end
     else
       pattern_lower = @pattern.downcase
       start_index = cell_str.downcase.index(pattern_lower)
@@ -38,7 +53,8 @@ class CellMatcher
 
   def is_regex?(pattern)
     # Check if pattern looks like a regex (contains regex metacharacters)
-    pattern.match?(/[.*+?^${}()|[\]\\]/) || 
+    pattern.match?(/[.*+?^${}()|\\]/) || 
+    pattern.include?('[') || pattern.include?(']') ||
     pattern.start_with?('/') && pattern.end_with?('/') ||
     pattern.start_with?('/') && pattern.match?(/\/[gimxo]*$/)
   end

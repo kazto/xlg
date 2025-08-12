@@ -6,3 +6,7 @@ source "https://rubygems.org"
 
 gem "rubyXL"
 
+group :test do
+  gem "minitest"
+end
+
