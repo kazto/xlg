@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
     s.name          = 'xlg'
-    s.version       = '0.4.2'
+    s.version       = '1.0.0'
     s.authors       = ['Kazto TAKAHASHI']
     s.email         = ['kazto@kazto.dev']
     s.summary       = 'A Ruby library for reading and writing Excel files.'
