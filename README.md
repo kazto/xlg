@@ -5,6 +5,7 @@
 ## Features
 
 - Search text in Excel files (.xlsx, .xls, .xlsm)
+- **Regular expression support** for advanced pattern matching
 - Support for single file, multiple files, and directory-based searches
 - Case-insensitive keyword matching
 - Grep-like output format: `filename:sheet:cell_ref:matched_text`
@@ -41,19 +42,49 @@ xlg 'keyword' file1.xlsx file2.xlsx
 xlg 'keyword' /path/to/directory/
 ```
 
+### Regular Expression Support
+
+`xlg` supports Ruby-style regular expressions for advanced pattern matching:
+
+```bash
+# Search for date patterns (YYYY-MM-DD format)
+xlg '\d{4}-\d{2}-\d{2}' data.xlsx
+
+# Search for email addresses
+xlg '[a-zA-Z0-9]+@[a-zA-Z0-9]+\.[a-zA-Z]+' contacts.xlsx
+
+# Search for strings starting with capital letters
+xlg '^[A-Z].*' documents.xlsx
+
+# Search for "test" OR "demo"
+xlg 'test|demo' samples.xlsx
+
+# Case-insensitive regex using flags
+xlg '/hello/i' greetings.xlsx
+
+# Search for phone numbers
+xlg '\d{3}-\d{3}-\d{4}' phonebook.xlsx
+```
+
 ### Command Line Options
 
 ```
-xlg KEYWORD FILE.xlsx                    # Single file search
-xlg KEYWORD FILE1.xlsx FILE2.xlsx       # Multiple file search
-xlg KEYWORD /path/to/directory/          # Directory search
+xlg PATTERN FILE.xlsx                    # Single file search
+xlg PATTERN FILE1.xlsx FILE2.xlsx       # Multiple file search
+xlg PATTERN /path/to/directory/          # Directory search
 
 Options:
   -h, --help  Show help message
 ```
 
+Where `PATTERN` can be:
+- A simple text string (e.g., `'hello'`)
+- A regular expression (e.g., `'\d+'` for numbers)
+- A regex with flags (e.g., `'/pattern/i'` for case-insensitive)
+
 ### Examples
 
+#### Text Search
 ```bash
 # Search for "test" in sample.xlsx
 xlg 'test' sample.xlsx
@@ -63,6 +94,24 @@ xlg 'データ' file1.xlsx file2.xlsx
 
 # Search for "keyword" in all Excel files in documents folder
 xlg 'キーワード' /home/user/documents/
+```
+
+#### Regular Expression Search
+```bash
+# Find all dates in YYYY-MM-DD format
+xlg '\d{4}-\d{2}-\d{2}' reports.xlsx
+
+# Find email addresses
+xlg '\w+@\w+\.\w+' contacts.xlsx
+
+# Find cells starting with "Total"
+xlg '^Total' financial.xlsx
+
+# Find prices in dollar format
+xlg '\$\d+\.\d{2}' prices.xlsx
+
+# Case-insensitive search
+xlg '/error/i' logs.xlsx
 ```
 
 ## Output Format
@@ -97,7 +146,7 @@ The tool consists of four main components:
 
 - `ExcelGrep` (lib/excel_grep.rb): Core search functionality for single files
 - `MultiFileSearcher` (lib/multi_file_searcher.rb): Handles multiple files and directories
-- `CellMatcher` (lib/cell_matcher.rb): Performs case-insensitive text matching
+- `CellMatcher` (lib/cell_matcher.rb): Performs text and regular expression matching
 - `OutputFormatter` (lib/output_formatter.rb): Formats output in grep-like style
 
 ## Development
@@ -105,7 +154,13 @@ The tool consists of four main components:
 ### Running Tests
 
 ```bash
-ruby test/test_*.rb
+# Run individual test files
+RUBYLIB=lib bundle exec ruby test/test_cell_matcher.rb
+RUBYLIB=lib bundle exec ruby test/test_regex_integration.rb
+RUBYLIB=lib bundle exec ruby test/test_edge_cases.rb
+
+# Or run all tests
+RUBYLIB=lib bundle exec ruby test/test_*.rb
 ```
 
 ### Project Structure
